@@ -49,7 +49,7 @@ animate();
 function init() {
     // 1. Setup Scena
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xb9dcff); 
+    scene.background = new THREE.Color(0x222226); // CAMBIARE COLORE SFONDO QUI
     scene.fog = new THREE.Fog(0x111111, 0, 60); 
 
     // 2. Setup Camera
@@ -68,7 +68,7 @@ function init() {
     container.appendChild(renderer.domElement);
 
     // 4. Luci Ambientali
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Ridotta leggermente per far risaltare i faretti
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Ridotta leggermente per far risaltare i faretti
     scene.add(ambientLight);
 
     // --- LUCE DI DEBUG (Rimuovi o commenta questa parte nella versione finale) ---
@@ -79,7 +79,7 @@ function init() {
     // 5. Caricamento Modello 3D (Galleria)
     const loader = new THREE.GLTFLoader();
     loader.load(
-        'galleria.glb', 
+        'galleria2.glb', 
         function (gltf) {
             environmentMesh = gltf.scene;
             environmentMesh.traverse((child) => {
@@ -190,31 +190,61 @@ function createPainting(data) {
     group.position.set(data.position.x, data.position.y, data.position.z);
     group.rotation.y = data.rotation.y;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = 500; canvas.height = 500;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = data.color;
-    ctx.fillRect(0, 0, 500, 500);
-    ctx.beginPath();
-    ctx.arc(250, 250, 100, 0, Math.PI*2);
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.fill();
-    ctx.font = "40px Arial";
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.fillText("Art " + data.id, 250, 250);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const painting = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 0.1), new THREE.MeshStandardMaterial({ map: texture }));
-    painting.castShadow = true; // Il quadro proietta ombra sulla parete
-    painting.receiveShadow = true; // Il quadro riceve luce
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Mesh iniziale (verrà aggiornata all'onLoad)
+    const painting = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1), 
+        new THREE.MeshStandardMaterial({ color: 0xcccccc })
+    );
+    painting.castShadow = true; 
+    painting.receiveShadow = true; 
     painting.userData = { id: data.id };
     group.add(painting);
 
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.05), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 1.1, 0.05), 
+        new THREE.MeshBasicMaterial({ color: 0x111111 })
+    );
     frame.position.z = -0.05;
     frame.castShadow = true;
     group.add(frame);
+
+    // Gestione caricamento immagine
+    if (data.image) {
+        textureLoader.load(data.image, (texture) => {
+            const aspect = texture.image.width / texture.image.height;
+            const w = data.width || 2; // Usa la larghezza da data.js o default a 2m
+            const h = w / aspect;      // Calcola l'altezza in base al formato reale
+
+            painting.material.map = texture;
+            painting.material.color.set(0xffffff);
+            painting.material.needsUpdate = true;
+            painting.geometry = new THREE.PlaneGeometry(w, h);
+            frame.geometry = new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05);
+            
+            // Posizionamento dinamico della targhetta
+            card.position.x = (w / 2) + 0.4;
+            card.position.y = -(h / 2) + 0.2;
+        });
+    } else {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = data.color || "#cccccc";
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const w = data.width || 2;
+        const h = 2; // Default quadrato per il fallback
+        
+        painting.material.map = new THREE.CanvasTexture(canvas);
+        painting.material.needsUpdate = true;
+        painting.geometry = new THREE.PlaneGeometry(w, h);
+        frame.geometry = new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05);
+        
+        card.position.x = (w / 2) + 0.4;
+        card.position.y = -(h / 2) + 0.2;
+    }
 
     const cardCanvas = document.createElement('canvas');
     cardCanvas.width = 300; cardCanvas.height = 150;
@@ -230,21 +260,19 @@ function createPainting(data) {
     cCtx.fillText("Clicca per info", 10, 130);
 
     const card = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cardCanvas) }));
-    card.position.set(1.5, -0.5, 0.01); // Leggermente staccato per evitare z-fighting
+    card.position.set(1.5, -0.5, 0.01);
     card.userData = { id: data.id };
     group.add(card);
 
     const spotLight = new THREE.SpotLight(0xffffff, 2); 
-    spotLight.position.set(0, 3, 2); // Alzato un po' per un'inclinazione migliore
+    spotLight.position.set(0, 3, 2); 
     spotLight.target = painting; 
     spotLight.angle = Math.PI / 6; 
     spotLight.penumbra = 0.5; 
     spotLight.distance = 15;
     spotLight.decay = 2;
-    
-    // Configurazione ombre per il faretto del quadro
     spotLight.castShadow = true;
-    spotLight.shadow.mapSize.width = 1024; // Più alta per i quadri
+    spotLight.shadow.mapSize.width = 1024; 
     spotLight.shadow.mapSize.height = 1024;
     spotLight.shadow.camera.near = 0.5;
     spotLight.shadow.camera.far = 15;
@@ -290,9 +318,17 @@ function openModal(data) {
     document.getElementById('modal-desc').innerText = data.description;
     document.getElementById('modal-year').innerText = data.year;
     document.getElementById('modal-tech').innerText = data.tech;
+    
     const img = document.getElementById('modal-img');
     img.style.backgroundColor = data.color;
-    img.src = `https://placehold.co/600x400/${data.color.replace('#','')}/ffffff?text=${encodeURIComponent(data.title)}`;
+    
+    // Se l'immagine è definita in data.js, caricala. Altrimenti usa il generatore di placeholder
+    if (data.image) {
+        img.src = data.image;
+    } else {
+        img.src = `https://placehold.co/600x400/${data.color.replace('#','')}/ffffff?text=${encodeURIComponent(data.title)}`;
+    }
+    
     document.getElementById('info-modal').classList.remove('hidden');
 }
 
@@ -336,25 +372,40 @@ function animate() {
 
     if (controls.isLocked) {
         const speed = 0.15; 
-        const playerRadius = 0.5; 
+        const playerRadius = 0.8; // Raggio leggermente aumentato per evitare di avvicinarsi troppo ai muri
 
-        const direction = new THREE.Vector3();
-        const frontVector = new THREE.Vector3(0, 0, Number(moveBackward) - Number(moveForward));
-        const sideVector = new THREE.Vector3(Number(moveLeft) - Number(moveRight), 0, 0);
+        // Direzioni di movimento relative alla camera
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; // Mantieni il movimento sul piano orizzontale
+        camDir.normalize();
 
-        direction.subVectors(frontVector, sideVector).normalize();
+        const camSide = new THREE.Vector3().crossVectors(camDir, camera.up).normalize();
 
-        if ((moveForward || moveBackward || moveLeft || moveRight) && environmentMesh) {
-            const moveVector = direction.clone().applyEuler(camera.rotation);
-            moveVector.y = 0; 
+        // 1. CONTROLLO MOVIMENTO AVANTI/INDIETRO
+        if (moveForward || moveBackward) {
+            const direction = moveForward ? 1 : -1;
+            const moveVector = camDir.clone().multiplyScalar(direction);
             
-            raycasterCollision.set(camera.position, moveVector.normalize());
+            raycasterCollision.set(camera.position, moveVector);
+            const intersects = raycasterCollision.intersectObject(environmentMesh, true);
+            
+            if (intersects.length === 0 || intersects[0].distance > playerRadius) {
+                controls.moveForward(speed * direction);
+            }
+        }
+
+        // 2. CONTROLLO MOVIMENTO LATERALE (STRAFE)
+        if (moveLeft || moveRight) {
+            const direction = moveRight ? 1 : -1;
+            const moveVector = camSide.clone().multiplyScalar(direction);
+
+            raycasterCollision.set(camera.position, moveVector);
             const intersects = raycasterCollision.intersectObject(environmentMesh, true);
 
             if (intersects.length === 0 || intersects[0].distance > playerRadius) {
-                controls.moveRight(-sideVector.x * speed);
-                controls.moveForward(-frontVector.z * speed);
-            } 
+                controls.moveRight(speed * direction);
+            }
         }
     }
 
