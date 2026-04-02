@@ -63,15 +63,16 @@ function init() {
     const container = document.getElementById('canvas-container');
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = false; 
+    renderer.shadowMap.enabled = true; 
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Ombre più morbide
     container.appendChild(renderer.domElement);
 
     // 4. Luci Ambientali
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Ridotta leggermente per far risaltare i faretti
     scene.add(ambientLight);
 
     // --- LUCE DI DEBUG (Rimuovi o commenta questa parte nella versione finale) ---
-    const debugLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+    const debugLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
     scene.add(debugLight);
     // -------------------------------------------------------------------------
 
@@ -83,8 +84,8 @@ function init() {
             environmentMesh = gltf.scene;
             environmentMesh.traverse((child) => {
                 if (child.isMesh) {
-                    child.castShadow = false;
-                    child.receiveShadow = false;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
                 }
             });
             scene.add(environmentMesh);
@@ -168,9 +169,15 @@ function createHangingLamp(x, y, z) {
     spotLight.target.position.set(0, -10, 0); 
     spotLight.angle = Math.PI / 2.5; 
     spotLight.penumbra = 0.5;
-    spotLight.decay = 1.5; 
+    spotLight.decay = 2; // Decadimento più realistico
     spotLight.distance = 25;
-    spotLight.castShadow = false;
+    
+    // Configurazione ombre
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.width = 512; // Risoluzione bilanciata per performance
+    spotLight.shadow.mapSize.height = 512;
+    spotLight.shadow.camera.near = 0.1;
+    spotLight.shadow.camera.far = 30;
     
     lampGroup.add(spotLight);
     lampGroup.add(spotLight.target);
@@ -199,12 +206,14 @@ function createPainting(data) {
 
     const texture = new THREE.CanvasTexture(canvas);
     const painting = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 0.1), new THREE.MeshStandardMaterial({ map: texture }));
-    painting.castShadow = false;
+    painting.castShadow = true; // Il quadro proietta ombra sulla parete
+    painting.receiveShadow = true; // Il quadro riceve luce
     painting.userData = { id: data.id };
     group.add(painting);
 
     const frame = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.05), new THREE.MeshBasicMaterial({ color: 0x111111 }));
     frame.position.z = -0.05;
+    frame.castShadow = true;
     group.add(frame);
 
     const cardCanvas = document.createElement('canvas');
@@ -221,17 +230,24 @@ function createPainting(data) {
     cCtx.fillText("Clicca per info", 10, 130);
 
     const card = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cardCanvas) }));
-    card.position.set(1.5, -0.5, 0); 
+    card.position.set(1.5, -0.5, 0.01); // Leggermente staccato per evitare z-fighting
     card.userData = { id: data.id };
     group.add(card);
 
     const spotLight = new THREE.SpotLight(0xffffff, 2); 
-    spotLight.position.set(0, 2, 2); 
+    spotLight.position.set(0, 3, 2); // Alzato un po' per un'inclinazione migliore
     spotLight.target = painting; 
     spotLight.angle = Math.PI / 6; 
     spotLight.penumbra = 0.5; 
     spotLight.distance = 15;
-    spotLight.castShadow = false;
+    spotLight.decay = 2;
+    
+    // Configurazione ombre per il faretto del quadro
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.width = 1024; // Più alta per i quadri
+    spotLight.shadow.mapSize.height = 1024;
+    spotLight.shadow.camera.near = 0.5;
+    spotLight.shadow.camera.far = 15;
     
     group.add(spotLight);
     scene.add(group);
