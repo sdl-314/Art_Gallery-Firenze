@@ -70,3 +70,30 @@ const exhibitionData = [
         rotation: { y: Math.PI }
     }
 ];
+
+/**
+ * DATABASE DEI CARTELLI (TESTI)
+ * Puoi aggiungere cartelli informativi o indicazioni.
+ */
+const signData = [
+    {
+        id: "sign-welcome",
+        text: "BENVENUTI ALLA\nGALLERIA FIRENZE\n\nSeguite il percorso\nper esplorare le opere",
+        position: { x: 8.6, y: 2.5, z: 30 },
+        rotation: { y: 0 },
+        fontSize: 32,
+        textColor: "#ffffff",
+        bgColor: "rgba(0, 0, 0, 0.7)",
+        width: 3
+    },
+    {
+        id: "sign-exit",
+        text: "USCITA ->",
+        position: { x: -20, y: 2.5, z: 5 },
+        rotation: { y: Math.PI / 2 },
+        fontSize: 48,
+        textColor: "#ffcc00",
+        bgColor: "#111111",
+        width: 1.5
+    }
+];

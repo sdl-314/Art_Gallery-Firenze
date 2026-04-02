@@ -68,18 +68,18 @@ function init() {
     container.appendChild(renderer.domElement);
 
     // 4. Luci Ambientali
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Ridotta leggermente per far risaltare i faretti
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); // Ridotta leggermente per far risaltare i faretti
     scene.add(ambientLight);
 
     // --- LUCE DI DEBUG (Rimuovi o commenta questa parte nella versione finale) ---
-    const debugLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+    const debugLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
     scene.add(debugLight);
     // -------------------------------------------------------------------------
 
     // 5. Caricamento Modello 3D (Galleria)
     const loader = new THREE.GLTFLoader();
     loader.load(
-        'galleria2.glb', 
+        'galleria3.glb', 
         function (gltf) {
             environmentMesh = gltf.scene;
             environmentMesh.traverse((child) => {
@@ -105,6 +105,11 @@ function init() {
     // 7. Caricamento Opere
     if (typeof exhibitionData !== 'undefined') {
         exhibitionData.forEach(data => createPainting(data));
+    }
+
+    // 7.1 Caricamento Cartelli (Testi)
+    if (typeof signData !== 'undefined') {
+        signData.forEach(data => createSign(data));
     }
 
     // 8. Controlli
@@ -280,6 +285,47 @@ function createPainting(data) {
     group.add(spotLight);
     scene.add(group);
     paintings.push(painting, card); 
+}
+
+function createSign(data) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; // Alta risoluzione
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Sfondo (con padding)
+    ctx.fillStyle = data.bgColor || "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Testo
+    ctx.fillStyle = data.textColor || "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const fontSize = data.fontSize || 32;
+    ctx.font = `bold ${fontSize}px 'Segoe UI', Arial`;
+
+    const lines = data.text.split('\n');
+    const lineHeight = fontSize * 1.4;
+    const totalHeight = lines.length * lineHeight;
+    const startY = (canvas.height - totalHeight) / 2 + lineHeight / 2;
+
+    lines.forEach((line, i) => {
+        ctx.fillText(line, canvas.width / 2, startY + (i * lineHeight));
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const w = data.width || 2;
+    const h = w * (canvas.height / canvas.width);
+    
+    const sign = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
+    );
+
+    sign.position.set(data.position.x, data.position.y, data.position.z);
+    sign.rotation.y = data.rotation.y || 0;
+    
+    scene.add(sign);
 }
 
 // --- LOGICA DI GIOCO ---
