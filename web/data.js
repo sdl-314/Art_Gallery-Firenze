@@ -35,7 +35,7 @@ const exhibitionData = [
         tech: "Tecnica Mista",
         description: "La frenesia della città moderna catturata attraverso strappi, collage e vernice spray. Un ritratto crudo ma vibrante della vita metropolitana che non dorme mai.",
         color: "#cc2b5e",
-        position: { x: 3.8, y: 2, z: 8 }, // Parete destra (verso il fondo)
+        position: { x: 4.1, y: 2, z: 8 }, // Parete destra (verso il fondo)
         rotation: { y: Math.PI / 2 } // Ruotato di -90 gradi
     },
     {
@@ -46,7 +46,7 @@ const exhibitionData = [
         tech: "Acquerello",
         description: "Delicate pennellate costruiscono la forma di un albero antico. Le radici affondano nella storia mentre i rami tendono verso un futuro incerto ma speranzoso.",
         color: "#56ab2f",
-        position: { x: 13.2, y: 2, z: 7 }, // Parete destra (verso l'ingresso)
+        position: { x: 12.9, y: 2, z: 7 }, // Parete destra (verso l'ingresso)
         rotation: { y: -Math.PI / 2 }
     },
     {

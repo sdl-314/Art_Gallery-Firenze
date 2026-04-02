@@ -1,127 +1,128 @@
 /**
  * LOGICA PRINCIPALE DELLA MOSTRA
- * Genera l'ambiente 3D basandosi sulla planimetria ASCII.
- * Versione Avanzata: Luci Custom (@), Soffitti Realistici, Atmosfera Intima.
+ * Carica l'ambiente 3D da file .glb e gestisce l'interazione.
  */
 
-// --- CONFIGURAZIONE ---
-const WALL_HEIGHT = 9;
-const DOOR_HEIGHT = 4;
-const WALL_THICKNESS = 1;
-const CELL_SIZE = 1;
+// --- CONFIGURAZIONE INIZIALE (SPAWN) ---
+// Modifica questi valori per cambiare il punto di partenza
+const START_POSITION = { x: 8.6, y: 1.7, z: 38 }; // Dove "nasce" l'utente
+const START_LOOK_AT = { x: 10, y: 1.7, z: 0 };   // Dove guarda all'inizio
 
-// Planimetria Aggiornata
-// Puoi usare il carattere '@' al posto della lettera della stanza per piazzare una luce appesa.
-const planimetriaString = `
-                                   CCCCCCC                
-                                  CaaaaaaaC               
-                                 CaaaaaaaaC              
-                                 *aaaa@aaaa*              
-                                 *aaaaaaaaa*              
-**********************************aaaaaaaaa**********     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb=aaaaaaaa@aaaaaaaaaaaaaaaaaa@aaaaaaaaaaaaa*     
-*bbbb@bbbb=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*     
-*bbbbbbbbb*********===************aaaaaaaaa**********     
-*bbbbbbbbb*ddddddd*      *ddddddd*aaaaaaaaa*              
-*bbbbbbbbb*ddddddd*      *ddddddd*aaaaaaaaa*              
-*bbbbbbbbb*ddddddd*      *ddddddd*aaaaaaaaa*              
-*bbbb@bbbb*ddddddd=      =ddddddd*aaaa@aaaa*              
-*bbbbbbbbb*ddd@ddd=      =ddd@ddd*aaaaaaaaa*              
-*bbbbbbbbb*ddddddd=      =ddddddd*aaaaaaaaa*              
-*bbbbbbbbb*ddddddd*      *ddddddd*aaaaaaaaa*              
-*bbbbbbbbb*ddddddd*      *ddddddd*aaaaaaaaa*              
-*bbbbbbbbb*********      *********aaaaaaaaa*              
-*bbbbbbbbb*                      ****===******************
-*bbbb@bbbb*                      *eeeeeeeee*fffffffffffff* 
-*bbbbbbbbb*                      *eeeeeeeee=fffffffffffff* 
-*bbbbbbbbb*                      *eeeeeeeee=fffffffffffff* 
-*bbbbbbbbb*                      *eeeeeeeee=ffffff@ffffff* 
-*bbbbbbbbb*                      *eeeeeeeee*fffffffffffff* 
-*bbbbbbbbb*                      *eeee@eeee*fffffffffffff* 
-*bbbbbbbbb*                      *eeeeeeeee***************
-*bbbbbbbbb*                      *eeeeeeeee*ggggggggggggg* 
-*bbbbbbbbb*                      *eeeeeeeee*ggggggggggggg* 
-*bbbb@bbbb*                      *eeeeeeeee*ggggggggggggg* 
-*bbbbbbbbb*                      *eeeeeeeee*ggggggggggggg* 
-*bbbbbbbbb*                      *eeeeeeeee*ggggggggggggg* 
-*bbbbbbbbb*                      *eeeeeeeee*gggggg@gggggg* 
-*bbbbbbbbb*                      *eeee@eeee*ggggggggggggg* 
-*bbbbbbbbb*                      *eeeeeeeee*ggggggggggggg* 
-***********                      *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*gggggg@gggggg* 
-                                 *eeee@eeee=ggggggggggggg* 
-                                 *eeeeeeeee=ggggggggggggg* 
-                                 *eeeeeeeee=ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 *eeeeeeeee*ggggggggggggg* 
-                                 ****===*************===**
-                                 *hhhhhhhhh*iiiiiiiiiiiii* 
-                                 =hhhhhhhhh*iiiiiiiiiiiii* 
-                                 =hhhhhhhhh*iiiiiiiiiiiii* 
-                                 =hhhhhhhhh=iiiiiiiiiiiii* 
-                                 *hhhhhhhhh=iiiiiiiiiiiii* 
-                                 *hhhh@hhhh=iiiiii@iiiiii* 
-                                 *hhhhhhhhh*iiiiiiiiiiiii* 
-                                 *hhhhhhhhh*iiiiiiiiiiiii* 
-                                 *hhhhhhhhh*iiiiiiiiiiiii* 
-                                 *hhhhhhhhh*iiiiiiiiiiiii* 
-                                 ****===******************
-`;
+// --- CONFIGURAZIONE LUCI ---
+// Definisci qui la posizione delle luci sul soffitto (x, y, z)
+const lightPositions = [
+    /*{ x: 8.6, y: 8, z: 31 },
+    { x: 8.6, y: 9, z: 18 },
+    { x: 8.6, y: 9, z: 11 },
+    { x: 8.6, y: 9, z: 4 },
+    { x: 20, y: 11, z: 31 },
+    { x: 20, y: 15, z: 12 },
+    { x: 20, y: 15, z: 18 },
+    { x: 8.6, y: 11.5, z: -8 },
+    { x: 8.6, y: 15.5, z: -17.5 },
+    { x: 18, y: 11.5, z: -17.5 },
+    { x: -7, y: 11.5, z: -17.5 },
+    { x: -24, y: 9, z: 4 },
+    { x: -24, y: 9, z: -5 },
+	{ x: -24, y: 9, z: -15 },
+    { x: 0, y: 8, z: -8 },
+    { x: -7.5, y: 8, z: -8 },
+    { x: -15, y: 8, z: -8 },
+	{ x: -5, y: 8, z: 0 },
+    { x: 0, y: 8, z: 12 },
+    { x: 0, y: 8, z: 24 },*/
 
-// Variabili globali
+    //{ x: -10, y: 9, z: 5 },
+    //{ x: 0, y: 9, z: 15 },
+];
+
+// --- VARIABILI GLOBALI ---
 let camera, scene, renderer, controls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-let raycaster;
-const paintings = [];
-let collisionMap = []; 
-let mapWidth = 0, mapHeight = 0;
-let roomCenters = {};
-
-// Dati per la collisione dell'abside
-let apseData = null; // { centerX, centerZ, innerRadius, outerRadius, startZ }
-
-const roomColors = {
-    'h': 0xd2b48c, 'i': 0xffcccc, 'g': 0xadd8e6, 'e': 0x98fb98,
-    'f': 0xffd700, 'a': 0xe0e0e0, 'b': 0xffb6c1, 'd': 0xdda0dd
-};
+let raycasterInteract, raycasterCollision; 
+const paintings = []; 
+let environmentMesh = null; 
 
 init();
 animate();
 
 function init() {
+    // 1. Setup Scena
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xb9dcff); // Sfondo scuro per atmosfera
-    scene.fog = new THREE.Fog(0x111111, 0, 40);
+    scene.background = new THREE.Color(0xb9dcff); 
+    scene.fog = new THREE.Fog(0x111111, 0, 60); 
 
+    // 2. Setup Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     
+    // IMPOSTAZIONE PUNTO DI PARTENZA
+    camera.position.set(START_POSITION.x, START_POSITION.y, START_POSITION.z);
+    camera.lookAt(START_LOOK_AT.x, START_LOOK_AT.y, START_LOOK_AT.z);
+
+    // 3. Setup Renderer
     const container = document.getElementById('canvas-container');
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Ombre più morbide
+    renderer.shadowMap.enabled = false; 
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Luce ambientale minima
+    // 4. Luci Ambientali
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    parseAndBuildEnvironment();
+    // --- LUCE DI DEBUG (Rimuovi o commenta questa parte nella versione finale) ---
+    const debugLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+    scene.add(debugLight);
+    // -------------------------------------------------------------------------
 
+    // 5. Caricamento Modello 3D (Galleria)
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+        'galleria.glb', 
+        function (gltf) {
+            environmentMesh = gltf.scene;
+            environmentMesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = false;
+                    child.receiveShadow = false;
+                }
+            });
+            scene.add(environmentMesh);
+            console.log("Modello galleria caricato!");
+        },
+        undefined, 
+        function (error) {
+            console.error('Errore nel caricamento del modello:', error);
+        }
+    );
+
+    // 6. Creazione Luci Appese
+    lightPositions.forEach(pos => {
+        createHangingLamp(pos.x, pos.y, pos.z);
+    });
+
+    // 7. Caricamento Opere
+    if (typeof exhibitionData !== 'undefined') {
+        exhibitionData.forEach(data => createPainting(data));
+    }
+
+    // 8. Controlli
+    setupControls();
+
+    // 9. Event Listeners
+    raycasterInteract = new THREE.Raycaster(); 
+    raycasterCollision = new THREE.Raycaster(); 
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('click', onMouseClick);
+    window.addEventListener('resize', onWindowResize);
+}
+
+function setupControls() {
     controls = new THREE.PointerLockControls(camera, document.body);
     const blocker = document.getElementById('blocker');
 
-    // Gestione click generico per avviare/riprendere (utile se blocker è nascosto o per rientro rapido)
     document.addEventListener('click', (e) => {
         if (e.target.closest('#info-modal') || e.target.closest('button')) return;
         const modalHidden = document.getElementById('info-modal').classList.contains('hidden');
@@ -138,257 +139,43 @@ function init() {
         }
     });
     scene.add(controls.getObject());
-
-    // Flag #no-overview: Nascondi blocker iniziale
+    
     if (window.location.hash.includes('no-overview')) {
         blocker.style.display = 'none';
     }
-
-    if (typeof exhibitionData !== 'undefined') {
-        exhibitionData.forEach(data => createPainting(data));
-    }
-
-    raycaster = new THREE.Raycaster();
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
-    document.addEventListener('click', onMouseClick);
-    window.addEventListener('resize', onWindowResize);
 }
 
-function parseAndBuildEnvironment() {
-    const rows = planimetriaString.split('\n').filter(r => r.length > 0);
-    mapHeight = rows.length;
-    mapWidth = rows.reduce((max, r) => Math.max(max, r.length), 0);
-    const offsetX = -mapWidth / 2;
-    const offsetZ = -mapHeight / 2;
+// --- CREAZIONE OGGETTI ---
 
-    collisionMap = Array(mapHeight).fill().map(() => Array(mapWidth).fill(false));
-    // FIX 1: Muri a "DoubleSide" per bloccare meglio la luce e prevenire "traspirazione"
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, side: THREE.DoubleSide });
-    
-    const curvePoints = [];
-
-    for (let z = 0; z < mapHeight; z++) {
-        const row = rows[z];
-        for (let x = 0; x < row.length; x++) {
-            const char = row[x] || ' ';
-            const posX = (x + offsetX) * CELL_SIZE;
-            const posZ = (z + offsetZ) * CELL_SIZE;
-
-            // --- MURI e PORTE ---
-            if (char === '*' || char === '=') {
-                const isDoor = (char === '=');
-                collisionMap[z][x] = !isDoor; 
-
-                const h = isDoor ? (WALL_HEIGHT - DOOR_HEIGHT) : WALL_HEIGHT;
-                const y = isDoor ? (DOOR_HEIGHT + h/2) : (h/2);
-
-                createBlock(WALL_THICKNESS, h, WALL_THICKNESS, posX, y, posZ, wallMat);
-
-                // FIX 2: Aumento sovrapposizione (epsilon) da 0.01 a 0.05 per chiudere fessure di luce
-                const nextChar = row[x+1] || ' ';
-                if (nextChar === '*' || nextChar === '=' || nextChar === 'C') {
-                    createBlock(CELL_SIZE - WALL_THICKNESS + 0.05, h, WALL_THICKNESS, posX + (CELL_SIZE/2), y, posZ, wallMat);
-                }
-                if (z < mapHeight - 1) {
-                    const downChar = rows[z+1][x] || ' ';
-                    if (downChar === '*' || downChar === '=' || downChar === 'C') {
-                        createBlock(WALL_THICKNESS, h, CELL_SIZE - WALL_THICKNESS + 0.05, posX, y, posZ + (CELL_SIZE/2), wallMat);
-                    }
-                }
-                
-                if (x > 0 && (row[x-1] === 'C')) {
-                     createBlock(CELL_SIZE - WALL_THICKNESS + 0.05, h, WALL_THICKNESS, posX - (CELL_SIZE/2), y, posZ, wallMat);
-                }
-                if (z > 0 && (rows[z-1][x] === 'C')) {
-                    createBlock(WALL_THICKNESS, h, CELL_SIZE - WALL_THICKNESS + 0.05, posX, y, posZ - (CELL_SIZE/2), wallMat);
-                }
-
-                if (isDoor) createFloorTile(posX, posZ, 0xff6666);
-            }
-            // --- CURVA (C) ---
-            else if (char === 'C') {
-                collisionMap[z][x] = false; 
-                curvePoints.push({x: posX, z: posZ, gridZ: z});
-                createFloorTile(posX, posZ, roomColors['a']);
-            }
-            // --- LUCI APPESE (@) ---
-            else if (char === '@') {
-                let roomChar = 'a'; 
-                if (x > 0 && roomColors[row[x-1]]) roomChar = row[x-1];
-                else if (z > 0 && roomColors[rows[z-1][x]]) roomChar = rows[z-1][x];
-                
-                createFloorTile(posX, posZ, roomColors[roomChar] || 0xffffff);
-                createHangingLamp(posX, WALL_HEIGHT, posZ);
-            }
-            // --- STANZE ---
-            else if (char.match(/[a-z]/)) {
-                createFloorTile(posX, posZ, roomColors[char] || 0xffffff);
-
-                if (!roomCenters[char]) roomCenters[char] = { sumX: 0, sumZ: 0, count: 0 };
-                roomCenters[char].sumX += posX;
-                roomCenters[char].sumZ += posZ;
-                roomCenters[char].count++;
-            }
-        }
-    }
-
-    // --- SOFFITTO UNIFORME ---
-    // Invece di pezzi singoli, facciamo un unico grande soffitto per evitare buchi
-    // Aggiungiamo un margine extra per sicurezza (+2)
-    const ceilGeo = new THREE.PlaneGeometry(mapWidth * CELL_SIZE + 2, mapHeight * CELL_SIZE + 2);
-    // FIX 3: Colore Soffitto cambiato a Bianco (0xffffff) per matchare i muri
-    const ceilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, side: THREE.FrontSide });
-    const globalCeiling = new THREE.Mesh(ceilGeo, ceilMat);
-    globalCeiling.rotation.x = Math.PI / 2;
-    // Centrato e leggermente spostato per coprire i bordi esterni
-    globalCeiling.position.set(0, WALL_HEIGHT, 0); 
-    globalCeiling.receiveShadow = true;
-    globalCeiling.castShadow = true; 
-    scene.add(globalCeiling);
-
-    // Costruzione Abside Curvo
-    if (curvePoints.length > 0) {
-        buildThickApse(curvePoints, wallMat);
-        createApseFloor(apseData, roomColors['a']);
-    }
-
-    // Setup finale
-    Object.keys(roomCenters).forEach(id => {
-        const room = roomCenters[id];
-        const cx = room.sumX / room.count;
-        const cz = room.sumZ / room.count;
-        
-        if (id === 'h') camera.position.set(cx, 1.7, cz);
-    });
-
-    console.log("Environment generated.");
-}
-
-// Funzione per creare una lampada appesa con luce soffusa
 function createHangingLamp(x, y, z) {
     const lampGroup = new THREE.Group();
     lampGroup.position.set(x, y, z);
 
-    // Filo
-    const cordGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.5);
-    const cordMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-    const cord = new THREE.Mesh(cordGeo, cordMat);
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.5), new THREE.MeshBasicMaterial({ color: 0x222222 }));
     cord.position.y = -0.75; 
     lampGroup.add(cord);
 
-    // Paralume
-    const shadeGeo = new THREE.ConeGeometry(0.4, 0.3, 32, 1, true);
-    const shadeMat = new THREE.MeshStandardMaterial({ color: 0x222222, side: THREE.DoubleSide });
-    const shade = new THREE.Mesh(shadeGeo, shadeMat);
+    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0x222222, side: THREE.DoubleSide }));
     shade.position.y = -1.5;
     lampGroup.add(shade);
 
-    // Lampadina 
-    const bulbGeo = new THREE.SphereGeometry(0.1, 20, 20);
-    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
-    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.1, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffdd88 }));
     bulb.position.y = -1.5;
     lampGroup.add(bulb);
 
-    // Luce soffusa (SpotLight verso il basso)
     const spotLight = new THREE.SpotLight(0xffeeb1, 1); 
     spotLight.position.set(0, 0, 0);
     spotLight.target.position.set(0, -10, 0); 
     spotLight.angle = Math.PI / 2.5; 
-    spotLight.penumbra = 1;
+    spotLight.penumbra = 0.5;
     spotLight.decay = 1.5; 
-    spotLight.distance = 20;
-    spotLight.castShadow = true;
-    spotLight.shadow.bias = -0.005; 
+    spotLight.distance = 25;
+    spotLight.castShadow = false;
     
     lampGroup.add(spotLight);
     lampGroup.add(spotLight.target);
 
     scene.add(lampGroup);
-}
-
-function buildThickApse(points, material) {
-    // 1. Calcoli geometrici
-    let minX = Infinity, maxX = -Infinity, maxZ = -Infinity, maxGridZ = -Infinity;
-    points.forEach(p => {
-        if(p.x < minX) minX = p.x;
-        if(p.x > maxX) maxX = p.x;
-        if(p.z > maxZ) maxZ = p.z; 
-        if(p.gridZ > maxGridZ) maxGridZ = p.gridZ;
-    });
-
-    // Coordinata Z del confine (esattamente tra l'ultima riga C e la prima *)
-    const boundaryZ = maxZ + (CELL_SIZE / 2);
-
-    const centerX = (minX + maxX) / 2;
-    const outerRadius = ((maxX - minX) / 2) + (CELL_SIZE / 2); 
-    const innerRadius = outerRadius - WALL_THICKNESS;
-
-    // Salviamo i dati per la collisione
-    apseData = {
-        centerX: centerX,
-        centerZ: boundaryZ, 
-        outerRadius: outerRadius,
-        innerRadius: innerRadius,
-        boundaryZ: boundaryZ 
-    };
-
-    // 2. Creazione Mesh Spessa (Footprint Extrusion)
-    const shape = new THREE.Shape();
-    shape.moveTo(outerRadius, 0);
-    shape.absarc(0, 0, outerRadius, 0, Math.PI, false);
-    shape.lineTo(-innerRadius, 0);
-    shape.absarc(0, 0, innerRadius, Math.PI, 0, true);
-    shape.lineTo(outerRadius, 0);
-
-    const extrudeSettings = {
-        depth: WALL_HEIGHT, 
-        bevelEnabled: false,
-        curveSegments: 64
-    };
-
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const mesh = new THREE.Mesh(geometry, material);
-
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(centerX, 0, boundaryZ);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-}
-
-function createApseFloor(data, color) {
-    if (!data) return;
-    const geometry = new THREE.CircleGeometry(data.outerRadius, 64, 0, Math.PI);
-    const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.8 });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(data.centerX, 0.02, data.boundaryZ);
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-}
-
-function createBlock(w, h, d, x, y, z, mat) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-}
-
-function createFloorTile(x, z, color) {
-    const geo = new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE);
-    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.8 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x, 0, z);
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-}
-
-function createCeilingTile(x, z, mat) {
-    // Deprecated in favor of global ceiling
 }
 
 function createPainting(data) {
@@ -412,7 +199,7 @@ function createPainting(data) {
 
     const texture = new THREE.CanvasTexture(canvas);
     const painting = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 0.1), new THREE.MeshStandardMaterial({ map: texture }));
-    painting.castShadow = true;
+    painting.castShadow = false;
     painting.userData = { id: data.id };
     group.add(painting);
 
@@ -438,20 +225,20 @@ function createPainting(data) {
     card.userData = { id: data.id };
     group.add(card);
 
-    // --- LUCE DRAMMATICA OPERA ---
-    const spotLight = new THREE.SpotLight(0xffffff, 1); // Intensità aumentata a 3
+    const spotLight = new THREE.SpotLight(0xffffff, 2); 
     spotLight.position.set(0, 2, 2); 
     spotLight.target = painting; 
     spotLight.angle = Math.PI / 6; 
     spotLight.penumbra = 0.5; 
-    spotLight.decay = 2;
     spotLight.distance = 15;
-    spotLight.castShadow = true;
+    spotLight.castShadow = false;
     
     group.add(spotLight);
     scene.add(group);
     paintings.push(painting, card); 
 }
+
+// --- LOGICA DI GIOCO ---
 
 function onKeyDown(event) {
     switch (event.code) {
@@ -469,15 +256,17 @@ function onKeyUp(event) {
         case 'ArrowRight': case 'KeyD': moveRight = false; break;
     }
 }
+
 function onMouseClick(event) {
     if (!controls.isLocked) return;
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(paintings);
+    raycasterInteract.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycasterInteract.intersectObjects(paintings);
     if (intersects.length > 0) {
         const data = exhibitionData.find(d => d.id === intersects[0].object.userData.id);
         if (data) openModal(data);
     }
 }
+
 function openModal(data) {
     controls.unlock();
     document.getElementById('modal-title').innerText = data.title;
@@ -490,53 +279,68 @@ function openModal(data) {
     img.src = `https://placehold.co/600x400/${data.color.replace('#','')}/ffffff?text=${encodeURIComponent(data.title)}`;
     document.getElementById('info-modal').classList.remove('hidden');
 }
+
 window.closeModal = function() {
     document.getElementById('info-modal').classList.add('hidden');
-    controls.lock(); // Torna subito alla vista 3D
+    controls.lock(); 
 }
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// --- RENDER LOOP ---
+
 function animate() {
     requestAnimationFrame(animate);
 
+    // DEBUG INFO UPDATE
+    // Posizione Camera
+    const cp = camera.position;
+    document.getElementById('dbg-cam').innerText = 
+        `${cp.x.toFixed(2)}, ${cp.y.toFixed(2)}, ${cp.z.toFixed(2)}`;
+
+    // Raycast per vedere dove guardo
+    raycasterInteract.setFromCamera(new THREE.Vector2(0, 0), camera);
+    // Controllo collisioni con ambiente e quadri per il debug
+    let targets = [];
+    if (environmentMesh) targets.push(environmentMesh);
+    targets = targets.concat(paintings);
+    
+    const hits = raycasterInteract.intersectObjects(targets, true);
+    if (hits.length > 0) {
+        const pt = hits[0].point;
+        document.getElementById('dbg-look').innerText = 
+            `${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)}`;
+    } else {
+        document.getElementById('dbg-look').innerText = "---";
+    }
+
     if (controls.isLocked) {
-        const speed = 0.5;
-        const oldPos = controls.getObject().position.clone();
+        const speed = 0.15; 
+        const playerRadius = 0.5; 
 
-        if (moveForward) controls.moveForward(speed);
-        if (moveBackward) controls.moveForward(-speed);
-        if (moveRight) controls.moveRight(speed);
-        if (moveLeft) controls.moveRight(-speed);
+        const direction = new THREE.Vector3();
+        const frontVector = new THREE.Vector3(0, 0, Number(moveBackward) - Number(moveForward));
+        const sideVector = new THREE.Vector3(Number(moveLeft) - Number(moveRight), 0, 0);
 
-        const pos = controls.getObject().position;
-        const offsetX = -mapWidth / 2;
-        const offsetZ = -mapHeight / 2;
-        const gridX = Math.floor((pos.x / CELL_SIZE) - offsetX);
-        const gridZ = Math.floor((pos.z / CELL_SIZE) - offsetZ);
-        
-        let collision = false;
+        direction.subVectors(frontVector, sideVector).normalize();
 
-        if (gridZ < 0 || gridZ >= mapHeight || gridX < 0 || gridX >= mapWidth || collisionMap[gridZ][gridX]) {
-            collision = true;
-        }
+        if ((moveForward || moveBackward || moveLeft || moveRight) && environmentMesh) {
+            const moveVector = direction.clone().applyEuler(camera.rotation);
+            moveVector.y = 0; 
+            
+            raycasterCollision.set(camera.position, moveVector.normalize());
+            const intersects = raycasterCollision.intersectObject(environmentMesh, true);
 
-        if (!collision && apseData && pos.z < apseData.boundaryZ) {
-            const dx = pos.x - apseData.centerX;
-            const dz = pos.z - apseData.centerZ;
-            const dist = Math.sqrt(dx*dx + dz*dz);
-            const playerBuffer = 0.4; 
-            if (dist > apseData.innerRadius - playerBuffer) {
-                collision = true;
-            }
-        }
-
-        if (collision) {
-            controls.getObject().position.copy(oldPos);
+            if (intersects.length === 0 || intersects[0].distance > playerRadius) {
+                controls.moveRight(-sideVector.x * speed);
+                controls.moveForward(-frontVector.z * speed);
+            } 
         }
     }
+
     renderer.render(scene, camera);
 }

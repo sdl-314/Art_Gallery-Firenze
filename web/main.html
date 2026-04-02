@@ -16,6 +16,12 @@
     <!-- UI Overlay: Mirino centrale -->
     <div id="crosshair"></div>
 
+    <!-- UI Overlay: Debug Info (Coordinate) -->
+    <div id="debug-info" class="fixed top-4 left-4 z-50 bg-black bg-opacity-75 text-green-400 p-4 font-mono text-sm rounded pointer-events-none select-none">
+        <p>CAM POS: <span id="dbg-cam">0, 0, 0</span></p>
+        <p>LOOK AT: <span id="dbg-look">---</span></p>
+    </div>
+
     <!-- UI Overlay: Schermata di inizio (Blocker) -->
     <div id="blocker">
         <h1 class="text-4xl font-bold mb-4">Mostra d'Arte Virtuale</h1>
@@ -72,6 +78,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- PointerLockControls (per il movimento FPS) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <!-- GLTFLoader (per caricare modelli .glb/.gltf) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <!-- I TUOI SCRIPT LOCALI -->
     <!-- Carica PRIMA i dati, così sono disponibili per lo script principale -->
