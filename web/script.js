@@ -42,6 +42,7 @@ let moveForward = false, moveBackward = false, moveLeft = false, moveRight = fal
 let raycasterInteract, raycasterCollision; 
 const paintings = []; 
 let environmentMesh = null; 
+let isModalClosing = false; // Flag per evitare che il blocker appaia quando si chiude un modal
 
 init();
 animate();
@@ -140,6 +141,7 @@ function setupControls() {
     blocker.addEventListener('click', () => controls.lock());
     controls.addEventListener('lock', () => blocker.style.display = 'none');
     controls.addEventListener('unlock', () => {
+        // Mostra il blocker SOLO se il modal è chiuso
         if (document.getElementById('info-modal').classList.contains('hidden')) {
             blocker.style.display = 'flex';
         }
@@ -345,20 +347,14 @@ function createPainting(data) {
     card.userData = { id: data.id };
     group.add(card);
 
-    const spotLight = new THREE.SpotLight(0xffffff, 2); 
+    const spotLight = new THREE.SpotLight(0xffffff, data.lightIntensity || 2); 
     spotLight.position.set(0, 3, 2); 
     spotLight.target = painting; 
-    spotLight.angle = Math.PI / 6; 
+    spotLight.angle = data.lightAngle || Math.PI / 6; 
     spotLight.penumbra = 0.5; 
-    spotLight.distance = 15;
+    spotLight.distance = 7;
     spotLight.decay = 2;
-    spotLight.castShadow = true;
-    spotLight.shadow.mapSize.width = 1024; 
-    spotLight.shadow.mapSize.height = 1024;
-    spotLight.shadow.camera.near = 0.5;
-    spotLight.shadow.camera.far = 15;
-    spotLight.shadow.bias = -0.0001;
-    spotLight.shadow.normalBias = 0.05; // Risolve le linee/onde di interferenza sui muri
+    spotLight.castShadow = false;
     
     group.add(spotLight);
     scene.add(group);
@@ -422,21 +418,40 @@ function onKeyUp(event) {
         case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
         case 'ArrowDown': case 'KeyS': moveBackward = false; break;
         case 'ArrowRight': case 'KeyD': moveRight = false; break;
+        case 'Escape': 
+            if (!document.getElementById('info-modal').classList.contains('hidden')) {
+                closeModal(); 
+            }
+            break;
     }
 }
 
 function onMouseClick(event) {
     if (!controls.isLocked) return;
     raycasterInteract.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycasterInteract.intersectObjects(paintings);
+    
+    // Includiamo l'ambiente per bloccare il raggio se c'è un muro davanti
+    let targets = [...paintings];
+    if (environmentMesh) targets.push(environmentMesh);
+
+    const intersects = raycasterInteract.intersectObjects(targets, true);
+    
     if (intersects.length > 0) {
-        const data = exhibitionData.find(d => d.id === intersects[0].object.userData.id);
-        if (data) openModal(data);
+        const firstHit = intersects[0].object;
+        
+        // Controlliamo se l'oggetto più vicino è effettivamente un quadro o un cartellino
+        if (paintings.includes(firstHit)) {
+            const data = exhibitionData.find(d => d.id === firstHit.userData.id);
+            if (data) openModal(data);
+        }
+        // Se il firstHit è parte di environmentMesh, non succede nulla (il muro blocca il raggio)
     }
 }
 
 function openModal(data) {
+    document.getElementById('info-modal').classList.remove('hidden');
     controls.unlock();
+    
     document.getElementById('modal-title').innerText = data.title;
     document.getElementById('modal-artist').innerText = data.artist;
     document.getElementById('modal-desc').innerText = data.description;
@@ -452,13 +467,11 @@ function openModal(data) {
     } else {
         img.src = `https://placehold.co/600x400/${data.color.replace('#','')}/ffffff?text=${encodeURIComponent(data.title)}`;
     }
-    
-    document.getElementById('info-modal').classList.remove('hidden');
 }
 
 window.closeModal = function() {
     document.getElementById('info-modal').classList.add('hidden');
-    controls.lock(); 
+    controls.lock(); // Ricattura il mouse per la navigazione
 }
 
 function onWindowResize() {
@@ -474,7 +487,7 @@ function animate() {
 
     // DEBUG INFO UPDATE
     // Posizione Camera
-    const cp = camera.position;
+    /*const cp = camera.position;
     document.getElementById('dbg-cam').innerText = 
         `${cp.x.toFixed(2)}, ${cp.y.toFixed(2)}, ${cp.z.toFixed(2)}`;
 
@@ -492,7 +505,7 @@ function animate() {
             `${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)}`;
     } else {
         document.getElementById('dbg-look').innerText = "---";
-    }
+    }*/
 
     if (controls.isLocked) {
         const speed = 0.15; 
