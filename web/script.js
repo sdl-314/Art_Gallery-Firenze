@@ -153,6 +153,27 @@ function setupControls() {
 
 // --- CREAZIONE OGGETTI ---
 
+// Funzione di utilità per suddividere il testo in linee per la canvas
+function getLines(ctx, text, maxWidth) {
+    if (!text) return [];
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        let word = words[i];
+        let width = ctx.measureText(currentLine + " " + word).width;
+        if (width < maxWidth) {
+            currentLine += " " + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    return lines;
+}
+
 function createHangingLamp(x, y, z) {
     const lampGroup = new THREE.Group();
     lampGroup.position.set(x, y, z);
@@ -183,6 +204,8 @@ function createHangingLamp(x, y, z) {
     spotLight.shadow.mapSize.height = 512;
     spotLight.shadow.camera.near = 0.1;
     spotLight.shadow.camera.far = 30;
+    spotLight.shadow.bias = -0.0001;
+    spotLight.shadow.normalBias = 0.05; // Elimina gli artefatti (linee/onde) sulle pareti
     
     lampGroup.add(spotLight);
     lampGroup.add(spotLight.target);
@@ -228,9 +251,9 @@ function createPainting(data) {
             painting.geometry = new THREE.PlaneGeometry(w, h);
             frame.geometry = new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05);
             
-            // Posizionamento dinamico della targhetta
-            card.position.x = (w / 2) + 0.4;
-            card.position.y = -(h / 2) + 0.2;
+            // Posizionamento dinamico della targhetta (allineata al fondo dell'opera)
+            card.position.x = (w / 2) + 0.6;
+            card.position.y = -(h / 2) + (card.geometry.parameters.height / 2);
         });
     } else {
         const canvas = document.createElement('canvas');
@@ -247,24 +270,77 @@ function createPainting(data) {
         painting.geometry = new THREE.PlaneGeometry(w, h);
         frame.geometry = new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05);
         
-        card.position.x = (w / 2) + 0.4;
-        card.position.y = -(h / 2) + 0.2;
+        card.position.x = (w / 2) + 0.6;
+        card.position.y = -(h / 2) + (card.geometry.parameters.height / 2);
     }
 
+    // --- CREAZIONE CARTIGLIO DINAMICO ---
     const cardCanvas = document.createElement('canvas');
-    cardCanvas.width = 300; cardCanvas.height = 150;
     const cCtx = cardCanvas.getContext('2d');
-    cCtx.fillStyle = "white";
-    cCtx.fillRect(0,0,300,150);
-    cCtx.fillStyle = "black";
-    cCtx.font = "bold 24px Arial";
-    cCtx.fillText(data.title, 10, 40);
-    cCtx.font = "16px Arial";
-    cCtx.fillText(data.artist, 10, 80);
-    cCtx.fillStyle = "blue";
-    cCtx.fillText("Clicca per info", 10, 130);
+    const canvasWidth = 600; // Aumentata larghezza per testi grandi
+    const padding = 30;
+    const maxWidth = canvasWidth - padding * 2;
 
-    const card = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cardCanvas) }));
+    // Definizioni Font
+    const titleFont = "bold 44px Arial";
+    const artistFont = "italic 32px Arial";
+    const footerFont = "bold 24px Arial";
+    
+    // Interlinee
+    const titleLineH = 50;
+    const artistLineH = 40;
+
+    // Misurazione preliminare per l'altezza (usando gli stessi font del disegno)
+    cCtx.font = titleFont;
+    const titleLines = getLines(cCtx, data.title, maxWidth);
+    cCtx.font = artistFont;
+    const artistLines = getLines(cCtx, data.artist, maxWidth);
+
+    // Calcolo altezza totale dinamica
+    const canvasHeight = padding * 2 
+                       + (titleLines.length * titleLineH) 
+                       + (artistLines.length * artistLineH) 
+                       + 60; // Spazio extra per il footer
+    
+    cardCanvas.width = canvasWidth;
+    cardCanvas.height = canvasHeight;
+
+    // Disegno sfondo
+    cCtx.fillStyle = "white";
+    cCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Disegno testi
+    cCtx.fillStyle = "black";
+    cCtx.textAlign = "left";
+    cCtx.textBaseline = "top";
+    let y = padding;
+    
+    cCtx.font = titleFont;
+    titleLines.forEach(line => {
+        cCtx.fillText(line, padding, y);
+        y += titleLineH;
+    });
+
+    y += 10; // Spazio tra titolo e artista
+    cCtx.font = artistFont;
+    cCtx.fillStyle = "#444444";
+    artistLines.forEach(line => {
+        cCtx.fillText(line, padding, y);
+        y += artistLineH;
+    });
+
+    y += 15;
+    cCtx.fillStyle = "blue";
+    cCtx.font = footerFont;
+    cCtx.fillText("Clicca per dettagli", padding, y);
+
+    const cardRealWidth = 0.8; // Leggermente più largo per leggibilità
+    const cardRealHeight = cardRealWidth * (canvasHeight / canvasWidth);
+    
+    const card = new THREE.Mesh(
+        new THREE.PlaneGeometry(cardRealWidth, cardRealHeight), 
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cardCanvas) })
+    );
     card.position.set(1.5, -0.5, 0.01);
     card.userData = { id: data.id };
     group.add(card);
@@ -281,6 +357,8 @@ function createPainting(data) {
     spotLight.shadow.mapSize.height = 1024;
     spotLight.shadow.camera.near = 0.5;
     spotLight.shadow.camera.far = 15;
+    spotLight.shadow.bias = -0.0001;
+    spotLight.shadow.normalBias = 0.05; // Risolve le linee/onde di interferenza sui muri
     
     group.add(spotLight);
     scene.add(group);
