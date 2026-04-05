@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I volti dell'ignoto - Biglietteria digitale</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            background-image: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 font-serif text-white">
+
+    <div class="glass max-w-md w-full p-10 rounded-2xl shadow-2xl text-center fade-in">
+        <h1 class="text-3xl font-bold mb-2 tracking-widest uppercase">Galleria dell'Accademia di Firenze</h1>
+        <p class="text-gray-400 mb-8 italic">I volti dell'ignoto</p>
+        
+        <div class="space-y-6">
+            <p class="text-sm text-gray-400">L'esposizione virtuale è riservata. Inserisci il codice di accesso che trovi sul tuo biglietto digitale.</p>
+            
+            <input type="password" id="password" 
+                   class="w-full bg-black/50 border border-gray-700 rounded-lg p-4 text-center focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all placeholder-gray-600"
+                   placeholder="Codice di Accesso">
+            
+            <button onclick="tryLogin()" id="login-btn"
+                    class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg">
+                Valida
+            </button>
+            
+            <div id="status" class="text-sm min-h-[20px] transition-all"></div>
+        </div>
+
+        <div class="mt-12 pt-6 border-t border-white/10 text-sm text-gray-400">
+            <p>© 2026 @simdlldev - Tutti i diritti riservati</p>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
