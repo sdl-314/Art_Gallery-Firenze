@@ -1,13 +1,6 @@
-/**
- * SERVICE WORKER PERSISTENTE CON CACHE DEIFRATA
- */
-
 const CACHE_NAME = 'decrypted-gallery-cache';
 let galleryKeyHex = null;
 
-/**
- * Recupera la chiave da IndexedDB (usato dopo il refresh)
- */
 async function getKeyFromDB() {
     return new Promise((resolve) => {
         const request = indexedDB.open("GalleryDB", 1);
@@ -48,19 +41,16 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
     const pathname = url.pathname;
     
-    // Identifichiamo i file critici
     const protectedFiles = ['main.html', 'style.css', 'script.js', 'data.js', 'galleria.glb'];
     const isAsset = pathname.includes('/assets/') && (pathname.endsWith('.png') || pathname.endsWith('.jpg'));
     const isProtected = protectedFiles.some(f => pathname.endsWith(f)) || isAsset;
 
     if (isProtected) {
         event.respondWith((async () => {
-            // 1. Controlliamo se è già presente nella cache dei file decifrati
             const cache = await caches.open(CACHE_NAME);
             const cachedResponse = await cache.match(event.request);
             if (cachedResponse) return cachedResponse;
 
-            // 2. Se non in cache, recuperiamo la chiave
             if (!galleryKeyHex) {
                 galleryKeyHex = await getKeyFromDB();
             }
@@ -68,7 +58,6 @@ self.addEventListener('fetch', (event) => {
             if (!galleryKeyHex) return fetch(event.request);
 
             try {
-                // 3. Calcoliamo il percorso verso il file cifrato
                 const swFolder = self.location.pathname.substring(0, self.location.pathname.lastIndexOf('/') + 1);
                 const relativePath = pathname.substring(swFolder.length);
                 const vaultPath = `vault/${relativePath}.enc`;
@@ -79,7 +68,6 @@ self.addEventListener('fetch', (event) => {
                 const encryptedBuffer = await response.arrayBuffer();
                 const decryptedBuffer = await decryptBuffer(encryptedBuffer, galleryKeyHex);
 
-                // Determiniamo il MIME type
                 let type = 'application/octet-stream';
                 if (pathname.endsWith('.html')) type = 'text/html';
                 else if (pathname.endsWith('.css')) type = 'text/css';
@@ -89,7 +77,6 @@ self.addEventListener('fetch', (event) => {
 
                 const decryptedResponse = new Response(decryptedBuffer, { headers: { 'Content-Type': type } });
                 
-                // 4. Salviamo nella cache per i refresh futuri
                 cache.put(event.request, decryptedResponse.clone());
                 
                 return decryptedResponse;

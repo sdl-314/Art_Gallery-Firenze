@@ -1,13 +1,6 @@
-/**
- * LOGICA DI LOGIN E PERSISTENZA CHIAVE
- */
-
 const SALT = 'art-gallery-firenze-secret-salt'; 
 const ITERATIONS = 100000;
 
-/**
- * Salva la chiave in IndexedDB (accessibile dal Service Worker)
- */
 async function saveKeyToIndexedDB(keyHex) {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open("GalleryDB", 1);
@@ -64,7 +57,6 @@ async function tryLogin() {
         const exportedKey = await crypto.subtle.exportKey("raw", key);
         const keyHex = Array.from(new Uint8Array(exportedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
         
-        // --- SALVATAGGIO PERSISTENTE ---
         await saveKeyToIndexedDB(keyHex);
         localStorage.setItem('gallery_authenticated', 'true');
 
